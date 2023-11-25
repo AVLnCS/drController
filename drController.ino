@@ -15,66 +15,7 @@
 #define buttonStopPin 5
 #define hallSensorPin 21
 
-/*
-#include <GxEPD2_BW.h>
-#include <Fonts/FreeMonoBold9pt7b.h>
 
-
-#define USE_HSPI_FOR_EDP
-#define ENABLE_GxEPD2_GFX 0
-#define GxEPD2_DISPLAY_CLASS GxEPD2_BW
-#define GxEPD2_DRIVER_CLASS GxEPD2_370_TC1 // Waveshare 3.7"
-
-
-
-//--------------------------------------------------------------
-// somehow there should be an easier way to do this
-#define GxEPD2_BW_IS_GxEPD2_BW true
-#define GxEPD2_3C_IS_GxEPD2_3C true
-#define GxEPD2_7C_IS_GxEPD2_7C true
-#define GxEPD2_1248_IS_GxEPD2_1248 true
-#define IS_GxEPD(c, x) (c##x)
-#define IS_GxEPD2_BW(x) IS_GxEPD(GxEPD2_BW_IS_, x)
-#define IS_GxEPD2_3C(x) IS_GxEPD(GxEPD2_3C_IS_, x)
-#define IS_GxEPD2_7C(x) IS_GxEPD(GxEPD2_7C_IS_, x)
-#define IS_GxEPD2_1248(x) IS_GxEPD(GxEPD2_1248_IS_, x)
-
-#if defined(ESP32)
-#define MAX_DISPLAY_BUFFER_SIZE 65536ul // e.g.
-#if IS_GxEPD2_BW(GxEPD2_DISPLAY_CLASS)
-#define MAX_HEIGHT(EPD) (EPD::HEIGHT <= MAX_DISPLAY_BUFFER_SIZE / (EPD::WIDTH / 8) ? EPD::HEIGHT : MAX_DISPLAY_BUFFER_SIZE / (EPD::WIDTH / 8))
-#elif IS_GxEPD2_3C(GxEPD2_DISPLAY_CLASS)
-#define MAX_HEIGHT(EPD) (EPD::HEIGHT <= (MAX_DISPLAY_BUFFER_SIZE / 2) / (EPD::WIDTH / 8) ? EPD::HEIGHT : (MAX_DISPLAY_BUFFER_SIZE / 2) / (EPD::WIDTH / 8))
-#elif IS_GxEPD2_7C(GxEPD2_DISPLAY_CLASS)
-#define MAX_HEIGHT(EPD) (EPD::HEIGHT <= (MAX_DISPLAY_BUFFER_SIZE) / (EPD::WIDTH / 2) ? EPD::HEIGHT : (MAX_DISPLAY_BUFFER_SIZE) / (EPD::WIDTH / 2))
-#endif
-GxEPD2_DISPLAY_CLASS<GxEPD2_DRIVER_CLASS, MAX_HEIGHT(GxEPD2_DRIVER_CLASS)> display(GxEPD2_DRIVER_CLASS( 15,  27, 26,  25));
-#endif
-
-// comment out unused bitmaps to reduce code space used
-#include "bitmaps/Bitmaps200x200.h" // 1.54" b/w
-#include "bitmaps/Bitmaps104x212.h" // 2.13" b/w flexible GDEW0213I5F
-#include "bitmaps/Bitmaps128x250.h" // 2.13" b/w
-#include "bitmaps/Bitmaps128x296.h" // 2.9"  b/w
-#include "bitmaps/Bitmaps176x264.h" // 2.7"  b/w
-#include "bitmaps/Bitmaps400x300.h" // 4.2"  b/w
-#include "bitmaps/Bitmaps640x384.h" // 7.5"  b/w
-// 3-color
-#include "bitmaps/Bitmaps3c200x200.h" // 1.54" b/w/r
-#include "bitmaps/Bitmaps3c104x212.h" // 2.13" b/w/r
-#include "bitmaps/Bitmaps3c128x296.h" // 2.9"  b/w/r
-#include "bitmaps/Bitmaps3c176x264.h" // 2.7"  b/w/r
-#include "bitmaps/Bitmaps3c400x300.h" // 4.2"  b/w/r
-
-#if defined(ESP32) && defined(USE_HSPI_FOR_EPD)
-SPIClass hspi(HSPI);
-#endif
-
-
-const char HelloWorld[] = "Hello World!";
-
-//--------------------------------------------------------------
-*/
 
 
 enum MotorState {
@@ -92,22 +33,7 @@ MotorState currentState = STOPPED;
 int pulseCount = 0;
 int currentDepth = 0;
 
-/*
-void displayTask(void * parameter) {
-    // Initialize the e-paper display
-    display.init();
 
-   drawBitMaps(BOAT);
-
-    // Wait for 3 seconds
-    vTaskDelay(3000 / portTICK_PERIOD_MS);
-
-
-
-    // Delete the task after completion
-    vTaskDelete(NULL);
-}
-*/
 
 
 void setup() {
@@ -124,7 +50,7 @@ void setup() {
 
     //Create a new image cache
     UBYTE *BlackImage;
-
+    UBYTE *GUI;
     // allocating memory for image
     UWORD Imagesize = ((EPD_3IN7_WIDTH % 4 == 0)? (EPD_3IN7_WIDTH / 4 ): (EPD_3IN7_WIDTH / 4 + 1)) * EPD_3IN7_HEIGHT;
     if((BlackImage = (UBYTE *)malloc(Imagesize)) == NULL) {
@@ -141,7 +67,7 @@ void setup() {
     printf("show image for array\r\n");
 
     EPD_3IN7_4Gray_Display(BOAT);
-    DEV_Delay_ms(4000);
+    DEV_Delay_ms(1000);
 #endif
   
     printf("Paint_NewImage\r\n");
@@ -157,7 +83,7 @@ void setup() {
   
 
 
-#if 1 // Drawing on the image, partial display
+#if 0 // Drawing on the image, partial display
     //1.Select Image
     printf("SelectImage:BlackImage\r\n");
     Paint_SelectImage(BlackImage);
@@ -190,7 +116,7 @@ void setup() {
     DEV_Delay_ms(4000);
 #endif
 
-#if 1 // partial update, just 1 Gray mode
+#if 0 // partial update, just 1 Gray mode
     EPD_3IN7_1Gray_Init();       //init 1 Gray mode
     EPD_3IN7_1Gray_Clear();
     Paint_SelectImage(BlackImage);
@@ -233,6 +159,30 @@ void setup() {
 
 #endif
 
+// My custom code
+
+    Paint_NewImage(BlackImage, EPD_3IN7_WIDTH, EPD_3IN7_HEIGHT, 180, WHITE);
+
+    printf("SelectImage:GUI\r\n");
+    Paint_SelectImage(BlackImage);
+    Paint_SetScale(4);
+    Paint_Clear(WHITE);
+    Paint_DrawString_EN(10, 20, "CURRENT DEPTH:", &Font24, WHITE, GRAY4);
+    Paint_DrawString_EN(10, 175, "USER DEPTH:", &Font24, WHITE, GRAY4);
+    Paint_DrawString_EN(10, 385, "Depth +", &Font16, BLACK, GRAY1);
+    Paint_DrawString_EN(10, 435, "Depth -", &Font16, BLACK, GRAY1);
+    Paint_DrawString_EN(107, 385, "AUTO UP", &Font16, BLACK, GRAY1);
+    Paint_DrawString_EN(107, 435, "Down", &Font16, BLACK, GRAY1);
+    Paint_DrawString_EN(209, 385, "STOP", &Font16, BLACK, GRAY1);
+    Paint_DrawString_EN(209, 435, "Zero", &Font16, BLACK, GRAY1);
+
+    //Paint_SetRotate(90);
+    EPD_3IN7_4Gray_Display(BlackImage);
+    DEV_Delay_ms(100);    
+
+
+    /*
+
 
     EPD_3IN7_4Gray_Init();
     printf("Clear...\r\n");
@@ -248,7 +198,7 @@ void setup() {
     printf("close 5V, Module enters 0 power consumption ...\r\n");  
   // End of manufacturers Setup code
 
-
+  */
 
 
   // Setup timer and attach timer to motor control pins
