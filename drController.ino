@@ -385,19 +385,23 @@ void drawGUI(bool updateGUI){
 
     printf("SelectImage:GUI\r\n");
     Paint_SelectImage(BlackImage);
-  if(updateGUI){
 
-    // Adjust the coordinates and size according to where userDepth is displayed on your screen
-    Paint_ClearWindows(120, 240, 160, 300, WHITE);
+    if(updateGUI){
 
-    // Redraw the userDepth
-    Paint_DrawNum(120, 240, userDepth, &Font24, GRAY4, WHITE);
+      // Adjust the coordinates and size according to where userDepth is displayed on your screen
+      Paint_ClearWindows(120, 240, 145, 265, WHITE);
 
-    // Partial update the display with the new userDepth
-    // Adjust the parameters according to the area you've just updated
-    EPD_3IN7_1Gray_Display_Part(BlackImage, 120, 240, 160, 300);
-    return;
-  }
+      // Redraw the userDepth
+      Paint_DrawNum(120, 240, userDepth, &Font24, GRAY4, WHITE);
+
+      // Partial update the display with the new userDepth
+      // Adjust the parameters according to the area you've just updated
+      EPD_3IN7_1Gray_Display_Part(BlackImage, 120, 240, 145, 265);
+      //EPD_3IN7_1Gray_Display(BlackImage);
+      return;
+    }
+
+    Paint_SetScale(4);
 
     int row1_y = 395;
     int row2_y = 445;
@@ -405,7 +409,6 @@ void drawGUI(bool updateGUI){
     int col2_x = 107;
     int col3_x = 229;
 
-    Paint_SetScale(4);
     Paint_Clear(WHITE);
     Paint_DrawRectangle(0, 380, 280, 480, BLACK, DOT_PIXEL_1X1, DRAW_FILL_FULL);
     Paint_DrawLine(0, 280, 420, 420, WHITE, DOT_PIXEL_2X2, LINE_STYLE_SOLID);
