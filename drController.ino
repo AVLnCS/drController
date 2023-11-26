@@ -13,10 +13,13 @@
 #define buttonUpPin 16
 #define buttonDownPin 18
 #define buttonStopPin 5
+#define buttonPlusPin 19
+#define buttonMinusPin 17
 #define hallSensorPin 21
 
 
-
+UBYTE *BlackImage;
+bool updateGUI = false;
 
 enum MotorState {
   STOPPED,
@@ -32,7 +35,10 @@ enum MotorState {
 MotorState currentState = STOPPED;
 int pulseCount = 0;
 int currentDepth = 0;
+int userDepth = 80;
 
+// Function Prototypes
+void updateDisplay(uint8_t * image);
 
 
 
@@ -49,7 +55,7 @@ void setup() {
     DEV_Delay_ms(500);
 
     //Create a new image cache
-    UBYTE *BlackImage;
+    //UBYTE *BlackImage;
     UBYTE *GUI;
     // allocating memory for image
     UWORD Imagesize = ((EPD_3IN7_WIDTH % 4 == 0)? (EPD_3IN7_WIDTH / 4 ): (EPD_3IN7_WIDTH / 4 + 1)) * EPD_3IN7_HEIGHT;
@@ -78,7 +84,7 @@ void setup() {
 #if 1   //show image for array    
     printf("show image for array\r\n");
     Paint_DrawBitMap(BOAT);
-    DEV_Delay_ms(4000);
+    DEV_Delay_ms(1000);
 #endif
   
 
@@ -160,27 +166,43 @@ void setup() {
 #endif
 
 // My custom code
-
+#if 0
+    int row1_y = 395;
+    int row2_y = 445;
+    int col1_x = 10;
+    int col2_x = 107;
+    int col3_x = 229;
     Paint_NewImage(BlackImage, EPD_3IN7_WIDTH, EPD_3IN7_HEIGHT, 180, WHITE);
 
     printf("SelectImage:GUI\r\n");
     Paint_SelectImage(BlackImage);
     Paint_SetScale(4);
     Paint_Clear(WHITE);
+    Paint_DrawRectangle(0, 380, 280, 480, BLACK, DOT_PIXEL_1X1, DRAW_FILL_FULL);
+    Paint_DrawLine(0, 280, 420, 420, WHITE, DOT_PIXEL_2X2, LINE_STYLE_SOLID);
+    Paint_DrawLine(92, 92, 380, 480, WHITE, DOT_PIXEL_2X2, LINE_STYLE_SOLID);
+
     Paint_DrawString_EN(10, 20, "CURRENT DEPTH:", &Font24, WHITE, GRAY4);
     Paint_DrawString_EN(10, 175, "USER DEPTH:", &Font24, WHITE, GRAY4);
-    Paint_DrawString_EN(10, 385, "Depth +", &Font16, BLACK, GRAY1);
-    Paint_DrawString_EN(10, 435, "Depth -", &Font16, BLACK, GRAY1);
-    Paint_DrawString_EN(107, 385, "AUTO UP", &Font16, BLACK, GRAY1);
-    Paint_DrawString_EN(107, 435, "Down", &Font16, BLACK, GRAY1);
-    Paint_DrawString_EN(209, 385, "STOP", &Font16, BLACK, GRAY1);
-    Paint_DrawString_EN(209, 435, "Zero", &Font16, BLACK, GRAY1);
+
+    // Paint current depth and user depth here:
+    Paint_DrawNum(120, 240, userDepth, &Font24, GRAY4, WHITE );
+    Paint_DrawNum(120, 85, currentDepth, &Font24, GRAY4, WHITE );
+    
+    Paint_DrawString_EN(col1_x, row1_y, "+", &Font24, BLACK, GRAY1);
+    Paint_DrawString_EN(col1_x, row2_y, "-", &Font24, BLACK, GRAY1);
+    Paint_DrawString_EN(col2_x, row1_y, "AUTO UP", &Font16, BLACK, GRAY1);
+    Paint_DrawString_EN(col2_x, row2_y, " Down", &Font16, BLACK, GRAY1);
+    Paint_DrawString_EN(col3_x, row1_y, "STOP", &Font16, BLACK, GRAY1);
+    Paint_DrawString_EN(col3_x, row2_y, "Zero", &Font16, BLACK, GRAY1);
 
     //Paint_SetRotate(90);
     EPD_3IN7_4Gray_Display(BlackImage);
     DEV_Delay_ms(100);    
 
+#endif
 
+  drawGUI(updateGUI);
     /*
 
 
@@ -207,6 +229,8 @@ void setup() {
   pinMode(buttonUpPin, INPUT_PULLUP);
   pinMode(buttonStopPin, INPUT_PULLUP);
   pinMode(buttonDownPin, INPUT_PULLUP);
+  pinMode(buttonPlusPin, INPUT_PULLUP);
+  pinMode(buttonMinusPin, INPUT_PULLUP);
   pinMode(hallSensorPin, INPUT);
 }
 
@@ -214,6 +238,20 @@ void loop() {
   bool buttonUp = digitalRead(buttonUpPin) == LOW;
   bool buttonDown = digitalRead(buttonDownPin) == LOW;
   bool buttonStop = digitalRead(buttonStopPin) == LOW;
+  bool buttonPlus = digitalRead(buttonPlusPin) == LOW;
+  bool buttonMinus = digitalRead(buttonMinusPin) == LOW;
+
+
+  if (buttonPlus && userDepth < 250) {
+    userDepth += 5;
+    if (userDepth > 250) userDepth = 250;
+    drawGUI(true);  // Call a function to update the display
+  }
+  if (buttonMinus && userDepth > 0) {
+    userDepth -= 5;
+    if (userDepth < 0) userDepth = 0;
+    drawGUI(true);  // Call a function to update the display
+  }
 
   switch (currentState) {
     case STOPPED:
@@ -341,40 +379,54 @@ void softStop(int pin) {
 }
 
 
-/*
-void helloWorld()
-{
-  //Serial.println("helloWorld");
-  display.setRotation(1);
-  display.setFont(&FreeMonoBold9pt7b);
-  display.setTextColor(GxEPD_BLACK);
-  int16_t tbx, tby; uint16_t tbw, tbh;
-  display.getTextBounds(HelloWorld, 0, 0, &tbx, &tby, &tbw, &tbh);
-  // center bounding box by transposition of origin:
-  uint16_t x = ((display.width() - tbw) / 2) - tbx;
-  uint16_t y = ((display.height() - tbh) / 2) - tby;
-  display.setFullWindow();
-  display.firstPage();
-  do
-  {
-    display.fillScreen(GxEPD_WHITE);
-    display.setCursor(x, y);
-    display.print(HelloWorld);
+
+void drawGUI(bool updateGUI){
+    Paint_NewImage(BlackImage, EPD_3IN7_WIDTH, EPD_3IN7_HEIGHT, 180, WHITE);
+
+    printf("SelectImage:GUI\r\n");
+    Paint_SelectImage(BlackImage);
+  if(updateGUI){
+
+    // Adjust the coordinates and size according to where userDepth is displayed on your screen
+    Paint_ClearWindows(120, 240, 160, 300, WHITE);
+
+    // Redraw the userDepth
+    Paint_DrawNum(120, 240, userDepth, &Font24, GRAY4, WHITE);
+
+    // Partial update the display with the new userDepth
+    // Adjust the parameters according to the area you've just updated
+    EPD_3IN7_1Gray_Display_Part(BlackImage, 120, 240, 160, 300);
+    return;
   }
-  while (display.nextPage());
-  //Serial.println("helloWorld done");
-}*/
 
-/*
-void drawBitMaps(const unsigned char *bitmap)
-{
-  display.setRotation(90);
-  display.setFullWindow();
-  display.firstPage();
-  do{
-    display.fillScreen(GxEPD_WHITE);
-    display.drawInvertedBitmap(0, 0, bitmap, display.epd2.WIDTH, display.epd2.HEIGHT, GxEPD_BLACK);
-  } while(display.nextPage());
+    int row1_y = 395;
+    int row2_y = 445;
+    int col1_x = 10;
+    int col2_x = 107;
+    int col3_x = 229;
+
+    Paint_SetScale(4);
+    Paint_Clear(WHITE);
+    Paint_DrawRectangle(0, 380, 280, 480, BLACK, DOT_PIXEL_1X1, DRAW_FILL_FULL);
+    Paint_DrawLine(0, 280, 420, 420, WHITE, DOT_PIXEL_2X2, LINE_STYLE_SOLID);
+    Paint_DrawLine(92, 92, 380, 480, WHITE, DOT_PIXEL_2X2, LINE_STYLE_SOLID);
+
+    Paint_DrawString_EN(10, 20, "CURRENT DEPTH:", &Font24, WHITE, GRAY4);
+    Paint_DrawString_EN(10, 175, "USER DEPTH:", &Font24, WHITE, GRAY4);
+
+    // Paint current depth and user depth here:
+    Paint_DrawNum(120, 240, userDepth, &Font24, GRAY4, WHITE );
+    Paint_DrawNum(120, 85, currentDepth, &Font24, GRAY4, WHITE );
+    
+    Paint_DrawString_EN(col1_x, row1_y, "+", &Font24, BLACK, GRAY1);
+    Paint_DrawString_EN(col1_x, row2_y, "-", &Font24, BLACK, GRAY1);
+    Paint_DrawString_EN(col2_x, row1_y, "AUTO UP", &Font16, BLACK, GRAY1);
+    Paint_DrawString_EN(col2_x, row2_y, " Down", &Font16, BLACK, GRAY1);
+    Paint_DrawString_EN(col3_x, row1_y, "STOP", &Font16, BLACK, GRAY1);
+    Paint_DrawString_EN(col3_x, row2_y, "Zero", &Font16, BLACK, GRAY1);
+
+    //Paint_SetRotate(90);
+    EPD_3IN7_4Gray_Display(BlackImage);
+    DEV_Delay_ms(100);    
+
 }
-
-*/
