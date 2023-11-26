@@ -19,6 +19,8 @@
 
 
 UBYTE *BlackImage;
+UBYTE *GUI;
+
 bool updateGUI = false;
 
 enum MotorState {
@@ -44,184 +46,14 @@ void updateDisplay(uint8_t * image);
 
 void setup() {
 
-
-  // Display manufacturers example code
-    printf("EPD_3IN7_test Demo\r\n");
-    DEV_Module_Init();
-
-    printf("e-Paper Init and Clear...\r\n");
-    EPD_3IN7_4Gray_Init();
-    EPD_3IN7_4Gray_Clear();
-    DEV_Delay_ms(500);
-
-    //Create a new image cache
-    //UBYTE *BlackImage;
-    UBYTE *GUI;
-    // allocating memory for image
-    UWORD Imagesize = ((EPD_3IN7_WIDTH % 4 == 0)? (EPD_3IN7_WIDTH / 4 ): (EPD_3IN7_WIDTH / 4 + 1)) * EPD_3IN7_HEIGHT;
-    if((BlackImage = (UBYTE *)malloc(Imagesize)) == NULL) {
-        printf("Failed to apply for black memory...\r\n");
-        while(1);
-    }
-
-    printf("Paint_NewImage\r\n");
-    Paint_NewImage(BlackImage, EPD_3IN7_WIDTH, EPD_3IN7_HEIGHT, 270, WHITE);
-    Paint_SetScale(4);
-    Paint_Clear(WHITE);
-
-#if 1   //show image for array    
-    printf("show image for array\r\n");
-
-    EPD_3IN7_4Gray_Display(BOAT);
-    DEV_Delay_ms(1000);
-#endif
-  
-    printf("Paint_NewImage\r\n");
-    Paint_NewImage(BlackImage, EPD_3IN7_WIDTH, EPD_3IN7_HEIGHT, 270, WHITE);
-    Paint_SetScale(4);
-    Paint_Clear(WHITE);
-
-#if 1   //show image for array    
-    printf("show image for array\r\n");
-    Paint_DrawBitMap(BOAT);
-    DEV_Delay_ms(1000);
-#endif
-  
-
-
-#if 0 // Drawing on the image, partial display
-    //1.Select Image
-    printf("SelectImage:BlackImage\r\n");
-    Paint_SelectImage(BlackImage);
-    Paint_SetScale(4);
-    Paint_Clear(WHITE);
-
-    // 2.Drawing on the image
-    printf("Drawing:BlackImage\r\n");
-    Paint_DrawPoint(10, 80, BLACK, DOT_PIXEL_1X1, DOT_STYLE_DFT);
-    Paint_DrawPoint(10, 90, BLACK, DOT_PIXEL_2X2, DOT_STYLE_DFT);
-    Paint_DrawPoint(10, 100, BLACK, DOT_PIXEL_3X3, DOT_STYLE_DFT);
-    Paint_DrawLine(20, 70, 70, 120, BLACK, DOT_PIXEL_1X1, LINE_STYLE_SOLID);
-    Paint_DrawLine(70, 70, 20, 120, BLACK, DOT_PIXEL_1X1, LINE_STYLE_SOLID);
-    Paint_DrawRectangle(20, 70, 70, 120, BLACK, DOT_PIXEL_1X1, DRAW_FILL_EMPTY);
-    Paint_DrawRectangle(80, 70, 130, 120, BLACK, DOT_PIXEL_1X1, DRAW_FILL_FULL);
-    Paint_DrawCircle(45, 95, 20, BLACK, DOT_PIXEL_1X1, DRAW_FILL_EMPTY);
-    Paint_DrawCircle(105, 95, 20, WHITE, DOT_PIXEL_1X1, DRAW_FILL_FULL);
-    Paint_DrawLine(85, 95, 125, 95, BLACK, DOT_PIXEL_1X1, LINE_STYLE_DOTTED);
-    Paint_DrawLine(105, 75, 105, 115, BLACK, DOT_PIXEL_1X1, LINE_STYLE_DOTTED);
-    Paint_DrawString_EN(10, 0, "waveshare", &Font16, BLACK, WHITE);
-    Paint_DrawString_EN(10, 20, "hello world", &Font12, WHITE, BLACK);
-    Paint_DrawNum(10, 33, 123456789, &Font12, BLACK, WHITE);
-    Paint_DrawNum(10, 50, 987654321, &Font16, WHITE, BLACK);
-    Paint_DrawString_EN(10, 150, "GRAY1 with black background", &Font24, BLACK, GRAY1);
-    Paint_DrawString_EN(10, 175, "GRAY2 with white background", &Font24, WHITE, GRAY2);
-    Paint_DrawString_EN(10, 200, "GRAY3 with white background", &Font24, WHITE, GRAY3);
-    Paint_DrawString_EN(10, 225, "GRAY4 with white background", &Font24, WHITE, GRAY4);
-    printf("EPD_Display\r\n");
-    EPD_3IN7_4Gray_Display(BlackImage);
-    DEV_Delay_ms(4000);
-#endif
-
-#if 0 // partial update, just 1 Gray mode
-    EPD_3IN7_1Gray_Init();       //init 1 Gray mode
-    EPD_3IN7_1Gray_Clear();
-    Paint_SelectImage(BlackImage);
-    Paint_SetScale(2);
-    Paint_Clear(WHITE);
-    printf("show time, partial update, just 1 Gary mode\r\n");
-    PAINT_TIME sPaint_time;
-    sPaint_time.Hour = 12;
-    sPaint_time.Min = 34;
-    sPaint_time.Sec = 56;
-    UBYTE num = 10;
-    for (;;) {
-        sPaint_time.Sec = sPaint_time.Sec + 1;
-        if (sPaint_time.Sec == 60) {
-            sPaint_time.Min = sPaint_time.Min + 1;
-            sPaint_time.Sec = 0;
-            if (sPaint_time.Min == 60) {
-                sPaint_time.Hour =  sPaint_time.Hour + 1;
-                sPaint_time.Min = 0;
-                if (sPaint_time.Hour == 24) {
-                    sPaint_time.Hour = 0;
-                    sPaint_time.Min = 0;
-                    sPaint_time.Sec = 0;
-                }
-            }
-        }
-        Paint_ClearWindows(300, 0, 479, 80, WHITE);
-        Paint_DrawTime(300, 20, &sPaint_time, &Font20, WHITE, BLACK);
-
-        num = num - 1;
-        if(num == 0) {
-            break;
-        }
-
-        printf("Part refresh...\r\n");
-        EPD_3IN7_1Gray_Display(BlackImage);
-        // EPD_3IN7_1Gray_Display_Part(BlackImage, 0, 0, 279, 180);
-        DEV_Delay_ms(500);
-    }
-
-#endif
-
-// My custom code
-#if 0
-    int row1_y = 395;
-    int row2_y = 445;
-    int col1_x = 10;
-    int col2_x = 107;
-    int col3_x = 229;
-    Paint_NewImage(BlackImage, EPD_3IN7_WIDTH, EPD_3IN7_HEIGHT, 180, WHITE);
-
-    printf("SelectImage:GUI\r\n");
-    Paint_SelectImage(BlackImage);
-    Paint_SetScale(4);
-    Paint_Clear(WHITE);
-    Paint_DrawRectangle(0, 380, 280, 480, BLACK, DOT_PIXEL_1X1, DRAW_FILL_FULL);
-    Paint_DrawLine(0, 280, 420, 420, WHITE, DOT_PIXEL_2X2, LINE_STYLE_SOLID);
-    Paint_DrawLine(92, 92, 380, 480, WHITE, DOT_PIXEL_2X2, LINE_STYLE_SOLID);
-
-    Paint_DrawString_EN(10, 20, "CURRENT DEPTH:", &Font24, WHITE, GRAY4);
-    Paint_DrawString_EN(10, 175, "USER DEPTH:", &Font24, WHITE, GRAY4);
-
-    // Paint current depth and user depth here:
-    Paint_DrawNum(120, 240, userDepth, &Font24, GRAY4, WHITE );
-    Paint_DrawNum(120, 85, currentDepth, &Font24, GRAY4, WHITE );
-    
-    Paint_DrawString_EN(col1_x, row1_y, "+", &Font24, BLACK, GRAY1);
-    Paint_DrawString_EN(col1_x, row2_y, "-", &Font24, BLACK, GRAY1);
-    Paint_DrawString_EN(col2_x, row1_y, "AUTO UP", &Font16, BLACK, GRAY1);
-    Paint_DrawString_EN(col2_x, row2_y, " Down", &Font16, BLACK, GRAY1);
-    Paint_DrawString_EN(col3_x, row1_y, "STOP", &Font16, BLACK, GRAY1);
-    Paint_DrawString_EN(col3_x, row2_y, "Zero", &Font16, BLACK, GRAY1);
-
-    //Paint_SetRotate(90);
-    EPD_3IN7_4Gray_Display(BlackImage);
-    DEV_Delay_ms(100);    
-
-#endif
-
-  drawGUI(updateGUI);
-    /*
-
-
-    EPD_3IN7_4Gray_Init();
-    printf("Clear...\r\n");
-    EPD_3IN7_4Gray_Clear();
-    
-    // Sleep & close 5V
-    printf("Goto Sleep...\r\n");
-    EPD_3IN7_Sleep();
-
-    free(BlackImage);
-    BlackImage = NULL;
-
-    printf("close 5V, Module enters 0 power consumption ...\r\n");  
-  // End of manufacturers Setup code
-
-  */
-
+  // Create a task for display setup
+  xTaskCreate(
+      DisplaySetupTask, /* Task function */
+      "DisplaySetup",   /* Name of the task */
+      10000,            /* Stack size of task */
+      NULL,             /* Parameter of the task */
+      1,                /* Priority of the task */
+      NULL);            /* Task handle to keep track of created task */
 
   // Setup timer and attach timer to motor control pins
   ledcAttach(motorForwardPin, LEDC_BASE_FREQ, LEDC_TIMER_8_BIT);
@@ -241,17 +73,25 @@ void loop() {
   bool buttonPlus = digitalRead(buttonPlusPin) == LOW;
   bool buttonMinus = digitalRead(buttonMinusPin) == LOW;
 
+if (buttonPlus && userDepth < 250) {
+        userDepth += 5;
+        if (userDepth > 250){
+          userDepth = 250;
+        }
+        updateUserDepth();
+        //testUpdateUserDepth() ;
+    }
 
-  if (buttonPlus && userDepth < 250) {
-    userDepth += 5;
-    if (userDepth > 250) userDepth = 250;
-    drawGUI(true);  // Call a function to update the display
-  }
-  if (buttonMinus && userDepth > 0) {
-    userDepth -= 5;
-    if (userDepth < 0) userDepth = 0;
-    drawGUI(true);  // Call a function to update the display
-  }
+    if (buttonMinus && userDepth > 0) {
+        userDepth -= 5;
+        if (userDepth < 0){
+          userDepth = 0;
+        }
+        updateUserDepth();
+        //testUpdateUserDepth() ;
+
+
+    }
 
   switch (currentState) {
     case STOPPED:
@@ -379,57 +219,162 @@ void softStop(int pin) {
 }
 
 
+void updateUserDepth(){
+    #if 1 // partial update, just 1 Gray mode
+    EPD_3IN7_1Gray_Init();       //init 1 Gray mode
+    EPD_3IN7_1Gray_Clear();
+    Paint_SelectImage(GUI);
+    Paint_SetScale(2);
+    Paint_Clear(WHITE);
+    printf("show time, partial update, just 1 Gary mode\r\n");
+    PAINT_TIME sPaint_time;
+    sPaint_time.Hour = 12;
+    sPaint_time.Min = 34;
+    sPaint_time.Sec = 56;
+    UBYTE num = 10;
+    for (;;) {
+        sPaint_time.Sec = sPaint_time.Sec + 1;
+        if (sPaint_time.Sec == 60) {
+            sPaint_time.Min = sPaint_time.Min + 1;
+            sPaint_time.Sec = 0;
+            if (sPaint_time.Min == 60) {
+                sPaint_time.Hour =  sPaint_time.Hour + 1;
+                sPaint_time.Min = 0;
+                if (sPaint_time.Hour == 24) {
+                    sPaint_time.Hour = 0;
+                    sPaint_time.Min = 0;
+                    sPaint_time.Sec = 0;
+                }
+            }
+        }
+        Paint_ClearWindows(0, 0, 479, 80, WHITE);
+        Paint_DrawTime(0, 20, &sPaint_time, &Font20, WHITE, BLACK);
 
-void drawGUI(bool updateGUI){
-    Paint_NewImage(BlackImage, EPD_3IN7_WIDTH, EPD_3IN7_HEIGHT, 180, WHITE);
+        num = num - 1;
+        if(num == 0) {
+            break;
+        }
 
-    printf("SelectImage:GUI\r\n");
-    Paint_SelectImage(BlackImage);
-
-    if(updateGUI){
-
-      // Adjust the coordinates and size according to where userDepth is displayed on your screen
-      Paint_ClearWindows(120, 240, 145, 265, WHITE);
-
-      // Redraw the userDepth
-      Paint_DrawNum(120, 240, userDepth, &Font24, GRAY4, WHITE);
-
-      // Partial update the display with the new userDepth
-      // Adjust the parameters according to the area you've just updated
-      EPD_3IN7_1Gray_Display_Part(BlackImage, 120, 240, 145, 265);
-      //EPD_3IN7_1Gray_Display(BlackImage);
-      return;
+        printf("Part refresh...\r\n");
+        EPD_3IN7_1Gray_Display(GUI);
+        // EPD_3IN7_1Gray_Display_Part(BlackImage, 0, 0, 279, 180);
+        DEV_Delay_ms(500);
     }
 
-    Paint_SetScale(4);
+#endif
+    
+    #if 0//My code
+    EPD_3IN7_1Gray_Init(); // Initialize 1 Gray mode for partial update
 
+    // Ensure the correct buffer is selected for drawing
+    Paint_SelectImage(GUI);
+    Paint_SetScale(2);
+
+    // Clear the area where userDepth is displayed to avoid overlap
+    // Adjust coordinates (x1, y1, x2, y2) as per the actual GUI layout
+    Paint_ClearWindows(120, 240, 145, 265, WHITE);
+
+    // Draw the updated userDepth value at the correct position
+    Paint_DrawNum(120, 240, userDepth, &Font24, BLACK, WHITE);
+
+    // Perform a partial update to refresh only the part of the screen with userDepth
+    // The parameters should be the same as used in Paint_ClearWindows
+    EPD_3IN7_1Gray_Display_Part(GUI, 120, 240, 145, 265);
+    #endif
+}
+
+void testUpdateUserDepth() {
+    EPD_3IN7_1Gray_Init(); // Ensure in 1GRAY mode
+    Paint_SelectImage(GUI);
+    Paint_ClearWindows(120, 240, 145, 265, WHITE);
+    Paint_DrawNum(120, 240, 123, &Font24, BLACK, WHITE); // Test with static number
+    EPD_3IN7_1Gray_Display_Part(GUI, 120, 240, 145, 265);
+}
+
+
+void DisplaySetupTask(void *pvParameters) {
+    // Your display setup code here
+    printf("EPD_3IN7_test Demo\r\n");
+    DEV_Module_Init();
+    
+    printf("e-Paper Init and Clear...\r\n");
+    EPD_3IN7_4Gray_Init();
+    EPD_3IN7_4Gray_Clear();
+    DEV_Delay_ms(500);
+
+    //Create a new image cache
+    //UBYTE *BlackImage;
+    // allocating memory for image
+    UWORD Imagesize = ((EPD_3IN7_WIDTH % 4 == 0)? (EPD_3IN7_WIDTH / 4 ): (EPD_3IN7_WIDTH / 4 + 1)) * EPD_3IN7_HEIGHT;
+    if((BlackImage = (UBYTE *)malloc(Imagesize)) == NULL) {
+        printf("Failed to apply for black memory...\r\n");
+        //while(1);
+    }
+    if((GUI = (UBYTE *)malloc(Imagesize)) == NULL) {
+        printf("Failed to apply for gui memory...\r\n");
+        //while(1);
+    }
+
+    printf("Paint_NewImage\r\n");
+    Paint_NewImage(BlackImage, EPD_3IN7_WIDTH, EPD_3IN7_HEIGHT, 270, WHITE);
+    Paint_SetScale(4);
+    Paint_Clear(WHITE);
+
+  #if 1   //LOGO  
+      printf("show image for array\r\n");
+
+      EPD_3IN7_4Gray_Display(BOAT);
+      DEV_Delay_ms(1000);
+  #endif
+    
+    printf("Paint_NewImage\r\n");
+    Paint_NewImage(BlackImage, EPD_3IN7_WIDTH, EPD_3IN7_HEIGHT, 270, WHITE);
+    Paint_SetScale(4);
+    Paint_Clear(WHITE);
+
+    fullUpdateGUI();
+
+    // Delete the task after its execution
+    vTaskDelete(NULL);
+}
+
+void fullUpdateGUI() {
+
+
+    // Initialize the e-Paper display for full update
+    EPD_3IN7_4Gray_Init();
+    EPD_3IN7_4Gray_Clear();
+
+    // Create a new image for the GUI
+    Paint_NewImage(GUI, EPD_3IN7_WIDTH, EPD_3IN7_HEIGHT, 180, WHITE);
+    Paint_SelectImage(GUI);
+
+    Paint_SetScale(4);
+    Paint_Clear(WHITE);
+
+    // Define GUI layout parameters
     int row1_y = 395;
     int row2_y = 445;
     int col1_x = 10;
     int col2_x = 107;
     int col3_x = 229;
 
-    Paint_Clear(WHITE);
+    // Draw GUI components
     Paint_DrawRectangle(0, 380, 280, 480, BLACK, DOT_PIXEL_1X1, DRAW_FILL_FULL);
-    Paint_DrawLine(0, 280, 420, 420, WHITE, DOT_PIXEL_2X2, LINE_STYLE_SOLID);
-    Paint_DrawLine(92, 92, 380, 480, WHITE, DOT_PIXEL_2X2, LINE_STYLE_SOLID);
-
     Paint_DrawString_EN(10, 20, "CURRENT DEPTH:", &Font24, WHITE, GRAY4);
     Paint_DrawString_EN(10, 175, "USER DEPTH:", &Font24, WHITE, GRAY4);
+    Paint_DrawNum(120, 240, userDepth, &Font24, GRAY4, WHITE);
+    Paint_DrawNum(120, 85, currentDepth, &Font24, GRAY4, WHITE);
 
-    // Paint current depth and user depth here:
-    Paint_DrawNum(120, 240, userDepth, &Font24, GRAY4, WHITE );
-    Paint_DrawNum(120, 85, currentDepth, &Font24, GRAY4, WHITE );
-    
+    // Button Labels
     Paint_DrawString_EN(col1_x, row1_y, "+", &Font24, BLACK, GRAY1);
     Paint_DrawString_EN(col1_x, row2_y, "-", &Font24, BLACK, GRAY1);
     Paint_DrawString_EN(col2_x, row1_y, "AUTO UP", &Font16, BLACK, GRAY1);
-    Paint_DrawString_EN(col2_x, row2_y, " Down", &Font16, BLACK, GRAY1);
+    Paint_DrawString_EN(col2_x, row2_y, "Down", &Font16, BLACK, GRAY1);
     Paint_DrawString_EN(col3_x, row1_y, "STOP", &Font16, BLACK, GRAY1);
     Paint_DrawString_EN(col3_x, row2_y, "Zero", &Font16, BLACK, GRAY1);
 
-    //Paint_SetRotate(90);
-    EPD_3IN7_4Gray_Display(BlackImage);
-    DEV_Delay_ms(100);    
-
+    // Refresh the entire display with the updated GUI
+    EPD_3IN7_4Gray_Display(GUI);
 }
+
