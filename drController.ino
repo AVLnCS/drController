@@ -4,7 +4,7 @@
 #include "ImageData.h"
 #include <stdlib.h>
 #include <Arduino.h>
-
+#include <esp_task_wdt.h>
 
 #define LEDC_TIMER_8_BIT  8
 #define LEDC_BASE_FREQ    22000
@@ -15,6 +15,7 @@
 #define buttonStopPin 5
 #define buttonPlusPin 19
 #define buttonMinusPin 17
+#define buttonUpdatePin 4
 #define hallSensorPin 21
 
 
@@ -46,14 +47,29 @@ void updateDisplay(uint8_t * image);
 
 void setup() {
 
+  // Create a configuration structure
+  esp_task_wdt_config_t wdt_config = {
+      .timeout_ms = 10000,  // Timeout in milliseconds
+      .idle_core_mask = 0,  // Apply to both cores (0 for ESP32)
+      .trigger_panic = true // Trigger panic handler on timeout
+  };
+
+  // Initialize the watchdog timer
+  esp_task_wdt_init(&wdt_config);
+
+  // Subscribe the current task to the watchdog timer
+  esp_task_wdt_add(NULL);
+
+
   // Create a task for display setup
-  xTaskCreate(
+  xTaskCreatePinnedToCore(
       DisplaySetupTask, /* Task function */
       "DisplaySetup",   /* Name of the task */
       10000,            /* Stack size of task */
       NULL,             /* Parameter of the task */
       1,                /* Priority of the task */
-      NULL);            /* Task handle to keep track of created task */
+      NULL,
+      0);            /* Task handle to keep track of created task */
 
   // Setup timer and attach timer to motor control pins
   ledcAttach(motorForwardPin, LEDC_BASE_FREQ, LEDC_TIMER_8_BIT);
@@ -63,6 +79,7 @@ void setup() {
   pinMode(buttonDownPin, INPUT_PULLUP);
   pinMode(buttonPlusPin, INPUT_PULLUP);
   pinMode(buttonMinusPin, INPUT_PULLUP);
+  pinMode(buttonUpdatePin, INPUT_PULLUP);
   pinMode(hallSensorPin, INPUT);
 }
 
@@ -72,26 +89,32 @@ void loop() {
   bool buttonStop = digitalRead(buttonStopPin) == LOW;
   bool buttonPlus = digitalRead(buttonPlusPin) == LOW;
   bool buttonMinus = digitalRead(buttonMinusPin) == LOW;
+  bool buttonUpdate = digitalRead(buttonUpdatePin) == LOW;
 
-if (buttonPlus && userDepth < 250) {
-        userDepth += 5;
-        if (userDepth > 250){
-          userDepth = 250;
-        }
-        updateUserDepth();
-        //testUpdateUserDepth() ;
-    }
+  if (buttonPlus && userDepth < 250) {
+          userDepth += 5;
+          if (userDepth > 250){
+            userDepth = 250;
+          }
+          createPartialUpdateTask();
+          //testUpdateUserDepth() ;
+  }
 
-    if (buttonMinus && userDepth > 0) {
-        userDepth -= 5;
-        if (userDepth < 0){
-          userDepth = 0;
-        }
-        updateUserDepth();
-        //testUpdateUserDepth() ;
+  if (buttonMinus && userDepth > 0) {
+      userDepth -= 5;
+      if (userDepth < 0){
+        userDepth = 0;
+      }
+      createPartialUpdateTask();
+      //testUpdateUserDepth() ;
 
 
-    }
+  }
+
+  if (buttonUpdate) {
+      createPartialUpdateTask();
+  }
+
 
   switch (currentState) {
     case STOPPED:
@@ -164,7 +187,8 @@ if (buttonPlus && userDepth < 250) {
     }
   }
 
-
+    // Reset the watchdog timer
+  esp_task_wdt_reset();
   delay(10); // for debouncing
 }
 
@@ -220,7 +244,7 @@ void softStop(int pin) {
 
 
 void updateUserDepth(){
-    #if 1 // partial update, just 1 Gray mode
+    #if 0 // partial update, just 1 Gray mode
     EPD_3IN7_1Gray_Init();       //init 1 Gray mode
     EPD_3IN7_1Gray_Clear();
     Paint_SelectImage(GUI);
@@ -263,7 +287,7 @@ void updateUserDepth(){
 
 #endif
     
-    #if 0//My code
+    #if 1//My code
     EPD_3IN7_1Gray_Init(); // Initialize 1 Gray mode for partial update
 
     // Ensure the correct buffer is selected for drawing
@@ -283,14 +307,6 @@ void updateUserDepth(){
     #endif
 }
 
-void testUpdateUserDepth() {
-    EPD_3IN7_1Gray_Init(); // Ensure in 1GRAY mode
-    Paint_SelectImage(GUI);
-    Paint_ClearWindows(120, 240, 145, 265, WHITE);
-    Paint_DrawNum(120, 240, 123, &Font24, BLACK, WHITE); // Test with static number
-    EPD_3IN7_1Gray_Display_Part(GUI, 120, 240, 145, 265);
-}
-
 
 void DisplaySetupTask(void *pvParameters) {
     // Your display setup code here
@@ -306,19 +322,19 @@ void DisplaySetupTask(void *pvParameters) {
     //UBYTE *BlackImage;
     // allocating memory for image
     UWORD Imagesize = ((EPD_3IN7_WIDTH % 4 == 0)? (EPD_3IN7_WIDTH / 4 ): (EPD_3IN7_WIDTH / 4 + 1)) * EPD_3IN7_HEIGHT;
-    if((BlackImage = (UBYTE *)malloc(Imagesize)) == NULL) {
+    /*if((BlackImage = (UBYTE *)malloc(Imagesize)) == NULL) {
         printf("Failed to apply for black memory...\r\n");
         //while(1);
-    }
+    }*/
     if((GUI = (UBYTE *)malloc(Imagesize)) == NULL) {
         printf("Failed to apply for gui memory...\r\n");
         //while(1);
     }
 
     printf("Paint_NewImage\r\n");
-    Paint_NewImage(BlackImage, EPD_3IN7_WIDTH, EPD_3IN7_HEIGHT, 270, WHITE);
+    Paint_NewImage(GUI, EPD_3IN7_WIDTH, EPD_3IN7_HEIGHT, 270, WHITE);
     Paint_SetScale(4);
-    Paint_Clear(WHITE);
+    //Paint_Clear(WHITE);
 
   #if 1   //LOGO  
       printf("show image for array\r\n");
@@ -326,32 +342,45 @@ void DisplaySetupTask(void *pvParameters) {
       EPD_3IN7_4Gray_Display(BOAT);
       DEV_Delay_ms(1000);
   #endif
-    
+    /*
     printf("Paint_NewImage\r\n");
     Paint_NewImage(BlackImage, EPD_3IN7_WIDTH, EPD_3IN7_HEIGHT, 270, WHITE);
     Paint_SetScale(4);
     Paint_Clear(WHITE);
-
-    fullUpdateGUI();
+    */
+    //fullUpdateGUI();
+    createFullUpdateTask();   
 
     // Delete the task after its execution
     vTaskDelete(NULL);
 }
 
-void fullUpdateGUI() {
+void createFullUpdateTask() {
+    xTaskCreatePinnedToCore(
+        fullUpdateGUI,       // Task function
+        "FullUpdateGUI",     // Name of the task
+        30000,               // Stack size of task (adjust as needed)
+        NULL,                // Parameter of the task (not used)
+        1,                   // Priority of the task
+        NULL,
+        0);               // Task handle (not used)
+}
 
-
+void fullUpdateGUI(void *pvParameters) {
     // Initialize the e-Paper display for full update
     EPD_3IN7_4Gray_Init();
-    EPD_3IN7_4Gray_Clear();
+    //EPD_3IN7_4Gray_Clear(); // Ensure this clears the display
+
+    // Reset the watchdog timer
+    esp_task_wdt_reset();
 
     // Create a new image for the GUI
     Paint_NewImage(GUI, EPD_3IN7_WIDTH, EPD_3IN7_HEIGHT, 180, WHITE);
     Paint_SelectImage(GUI);
-
     Paint_SetScale(4);
-    Paint_Clear(WHITE);
-
+    Paint_Clear(WHITE); // Make sure this clears the previous content
+    // Reset the watchdog timer (to prevent reset)
+    esp_task_wdt_reset();
     // Define GUI layout parameters
     int row1_y = 395;
     int row2_y = 445;
@@ -363,8 +392,8 @@ void fullUpdateGUI() {
     Paint_DrawRectangle(0, 380, 280, 480, BLACK, DOT_PIXEL_1X1, DRAW_FILL_FULL);
     Paint_DrawString_EN(10, 20, "CURRENT DEPTH:", &Font24, WHITE, GRAY4);
     Paint_DrawString_EN(10, 175, "USER DEPTH:", &Font24, WHITE, GRAY4);
-    Paint_DrawNum(120, 240, userDepth, &Font24, GRAY4, WHITE);
-    Paint_DrawNum(120, 85, currentDepth, &Font24, GRAY4, WHITE);
+    //Paint_DrawNum(120, 240, userDepth, &Font24, GRAY4, WHITE);
+    //Paint_DrawNum(120, 85, currentDepth, &Font24, GRAY4, WHITE);
 
     // Button Labels
     Paint_DrawString_EN(col1_x, row1_y, "+", &Font24, BLACK, GRAY1);
@@ -374,7 +403,50 @@ void fullUpdateGUI() {
     Paint_DrawString_EN(col3_x, row1_y, "STOP", &Font16, BLACK, GRAY1);
     Paint_DrawString_EN(col3_x, row2_y, "Zero", &Font16, BLACK, GRAY1);
 
+      // Reset the watchdog timer
+    esp_task_wdt_reset();
+
     // Refresh the entire display with the updated GUI
     EPD_3IN7_4Gray_Display(GUI);
+
+    vTaskDelete(NULL); // Delete the task after completion
+
+
+
+}
+
+void partialUpdateGUI(void *pvParameters) {
+    // Define the coordinates for currentDepth and userDepth display areas
+    // These coordinates should match with those used in the full GUI update function
+    const UWORD currentDepthX = 120, currentDepthY = 85;
+    const UWORD currentDepthWidth = 145 - 120, currentDepthHeight = 265 - 240; // Width and height for currentDepth
+    const UWORD userDepthX = 120, userDepthY = 240;
+    const UWORD userDepthWidth = 145 - 120, userDepthHeight = 265 - 240; // Width and height for userDepth
+
+    // Clear the areas where currentDepth and userDepth are displayed
+    Paint_ClearWindows(currentDepthX, currentDepthY, currentDepthX + currentDepthWidth, currentDepthY + currentDepthHeight, WHITE);
+    Paint_ClearWindows(userDepthX, userDepthY, userDepthX + userDepthWidth, userDepthY + userDepthHeight, WHITE);
+
+    // Draw the updated currentDepth and userDepth values
+    Paint_DrawNum(currentDepthX, currentDepthY, currentDepth, &Font24, BLACK, WHITE);
+    Paint_DrawNum(userDepthX, userDepthY, userDepth, &Font24, BLACK, WHITE);
+
+    // Update the specific parts of the display
+    EPD_3IN7_1Gray_Display_Part(GUI, currentDepthX, currentDepthY, currentDepthX + currentDepthWidth, currentDepthY + currentDepthHeight);
+    EPD_3IN7_1Gray_Display_Part(GUI, userDepthX, userDepthY, userDepthX + userDepthWidth, userDepthY + userDepthHeight);
+
+    vTaskDelete(NULL); // Delete the task after completion
+}
+
+
+void createPartialUpdateTask() {
+    xTaskCreatePinnedToCore(
+        partialUpdateGUI,   // Task function
+        "PartialUpdateGUI", // Name of the task
+        30000,              // Stack size of task (adjust as needed)
+        NULL,               // Parameter of the task (not used)
+        1,                  // Priority of the task
+        NULL,
+        0);              // Task handle (not used)
 }
 
